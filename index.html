@@ -46,7 +46,7 @@ canvas {
             <p></p>
 
             <h3 id="prompt"></h3>
-            <p><i>Hold SHIFT to add and CTRL to apply to all points</i></p>
+            <p><i>Hold SHIFT to add and tap SPACE to apply to all points</i></p>
 
             <script type='text/javascript'>
                 var prompt = document.getElementById("prompt");
@@ -85,6 +85,7 @@ canvas {
 
                 var multiply = true;
                 var iterate = false;
+                var curb = false;
 
                 function start(){
                     draw();
@@ -147,7 +148,7 @@ canvas {
                         dots.push(newDot);
                         pushDots.push(newDot);
                     }
-                    else if (iterate && !curb) {
+                    else if (iterate) {// && !curb) {
                         for (var i = 0; i < l; i++) {
                             newDot = new Dot(transform(dots[i].value), dots[i]);
                             dots.push(newDot);
@@ -166,6 +167,7 @@ canvas {
                     }
 
                     newDots = pushDots;
+                    iterate = false;
                     //dots.push(new Dot(transformation));
                     draw();
                 }
@@ -221,11 +223,13 @@ canvas {
                         event.preventDefault();
                         draw();
                     }
-                    if (event.keyCode == 17) {
+                    /*
+                    if (event.keyCode == 0 || event.keyCode == 32) {
                         iterate = false;
                         event.preventDefault();
                         draw();
                     }
+                    */
                     refreshPrompt();
                 }
 
@@ -237,8 +241,8 @@ canvas {
                         event.preventDefault();
                         draw();
                     }
-                    if (event.keyCode == 17) {
-                        iterate = true;
+                    if (event.keyCode == 0 || event.keyCode == 32) {
+                        iterate = !iterate;
                         event.preventDefault();
                         draw();
                     }
