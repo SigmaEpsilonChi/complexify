@@ -15,7 +15,6 @@ body{
     font-weight: 120;
 
     text-align: center;
-    overflow: hidden;
 }
 canvas {
     padding-left: 0;
@@ -47,7 +46,7 @@ canvas {
             <p></p>
 
             <h3 id="prompt"></h3>
-            <p><i>Hold SHIFT to multiply and CTRL to apply to all points</i></p>
+            <p><i>Hold SHIFT to add and CTRL to apply to all points</i></p>
 
             <script type='text/javascript'>
                 var prompt = document.getElementById("prompt");
@@ -66,9 +65,9 @@ canvas {
                 canvas.addEventListener("touchcancel", onTouchCancel, false);
                 canvas.addEventListener("touchmove", onTouchMove, false);
 
+                canvas.addEventListener("mousewheel", handleScroll);
                 window.addEventListener("keydown", onKeyDown, true);
                 window.addEventListener("keyup", onKeyUp, true);
-                window.addEventListener("mousewheel", handleScroll);
 
                 var view = new View();
                 var port = new Port();
@@ -84,7 +83,7 @@ canvas {
                 var startDot = new Dot(new Complex.Cartesian(1, 0), null);
                 //dots.push(startDot);
 
-                var multiply = false;
+                var multiply = true;
                 var iterate = false;
 
                 function start(){
@@ -148,13 +147,14 @@ canvas {
                         dots.push(newDot);
                         pushDots.push(newDot);
                     }
-                    else if (iterate) {
+                    else if (iterate && !curb) {
                         for (var i = 0; i < l; i++) {
                             newDot = new Dot(transform(dots[i].value), dots[i]);
                             dots.push(newDot);
                             pushDots.push(newDot);
                             //dots[i].setValue(transform(dots[i].value));
                         }
+                        curb = true;
                     }
                     else {
                         for (var i = 0; i < newDots.length; i++) {
@@ -217,7 +217,7 @@ canvas {
                     console.log("UP Keycode="+event.keyCode);
 
                     if (event.keyCode == 16) {
-                        multiply = false;
+                        multiply = true;
                         event.preventDefault();
                         draw();
                     }
@@ -233,7 +233,7 @@ canvas {
                     console.log("DOWN Keycode="+event.keyCode);
 
                     if (event.keyCode == 16) {
-                        multiply = true;
+                        multiply = false;
                         event.preventDefault();
                         draw();
                     }
