@@ -1,21 +1,5 @@
 <!DOCTYPE html>
 <style>
-@import url(https://fonts.googleapis.com/css?family=Raleway:400,200);
-html{
-    width:100%;
-    height:100%;
-}
-body{
-    width:100%;
-    height:100%;
-    background-color:#FFFFFF;
-
-    font-family: Raleway, sans-serif;
-    font-size: 20px;
-    font-weight: 120;
-
-    text-align: center;
-}
 canvas {
     padding-left: 0;
     padding-right: 0;
@@ -35,296 +19,309 @@ canvas {
         <script language="javascript" src="./js/view.js" type="text/javascript"></script>
         <script language="javascript" src="./js/port.js" type="text/javascript"></script>
         <script language="javascript" src="./js/camera.js" type="text/javascript"></script>
+        <link rel="stylesheet" href="/css/main.css">
     </head>
     <body>
+        <div id="nav-container"></div>
+        <script type="text/javascript">
+        $(document).ready(function() {
+        $('#nav-container').load('/nav.html');
+        });
+        </script>
 
-        <div id="game">
+        <div class="game">
             <h1>complexify</h1>
 
             <canvas width="512" height="512" id="gameCanvas">Canvas tag not supported</canvas>
 
-            <p></p>
-
             <h3 id="prompt"></h3>
             <p><i>Hold SHIFT to add and tap SPACE to apply to all points</i></p>
 
-            <script type='text/javascript'>
-                var prompt = document.getElementById("prompt");
-                var canvas = document.getElementById("gameCanvas");
-                var context = canvas.getContext("2d");
+        </div>
+        
+        <div id="footer-container"></div>
+        <script type="text/javascript">
+        $(document).ready(function() {
+        $('#footer-container').load('/footer.html');
+        });
+        </script>
 
-                var CANVAS_WIDTH = canvas.offsetWidth;
-                var CANVAS_HEIGHT = canvas.offsetHeight;
+        <script type='text/javascript'>
+            var prompt = document.getElementById("prompt");
+            var canvas = document.getElementById("gameCanvas");
+            var context = canvas.getContext("2d");
 
-                canvas.addEventListener("mousedown", onMouseDown, false);
-                canvas.addEventListener("mouseup", onMouseUp, false);
-                canvas.addEventListener("mousemove", onMouseMove, false);
+            var CANVAS_WIDTH = canvas.offsetWidth;
+            var CANVAS_HEIGHT = canvas.offsetHeight;
 
-                canvas.addEventListener("touchstart", onTouchStart, false);
-                canvas.addEventListener("touchend", onTouchEnd, false);
-                canvas.addEventListener("touchcancel", onTouchCancel, false);
-                canvas.addEventListener("touchmove", onTouchMove, false);
+            canvas.addEventListener("mousedown", onMouseDown, false);
+            canvas.addEventListener("mouseup", onMouseUp, false);
+            canvas.addEventListener("mousemove", onMouseMove, false);
 
-                canvas.addEventListener("mousewheel", handleScroll);
-                window.addEventListener("keydown", onKeyDown, true);
-                window.addEventListener("keyup", onKeyUp, true);
+            canvas.addEventListener("touchstart", onTouchStart, false);
+            canvas.addEventListener("touchend", onTouchEnd, false);
+            canvas.addEventListener("touchcancel", onTouchCancel, false);
+            canvas.addEventListener("touchmove", onTouchMove, false);
 
-                var view = new View();
-                var port = new Port();
-                var camera = new Camera();
+            canvas.addEventListener("mousewheel", handleScroll);
+            window.addEventListener("keydown", onKeyDown, true);
+            window.addEventListener("keyup", onKeyUp, true);
 
-                var mousePointView = {x:0, y:0}
-                var mousePointWorld = {x:0, y:0}
+            var view = new View();
+            var port = new Port();
+            var camera = new Camera();
 
-                var dots = [];
-                var newDots = [];
-                var transformation = new Complex.Cartesian(0, 0);
+            var mousePointView = {x:0, y:0}
+            var mousePointWorld = {x:0, y:0}
 
-                var startDot = new Dot(new Complex.Cartesian(1, 0), null);
-                //dots.push(startDot);
+            var dots = [];
+            var newDots = [];
+            var transformation = new Complex.Cartesian(0, 0);
 
-                var multiply = true;
-                var iterate = false;
-                var curb = false;
+            var startDot = new Dot(new Complex.Cartesian(1, 0), null);
+            //dots.push(startDot);
 
-                function start(){
-                    draw();
-                    refreshPrompt();
+            var multiply = true;
+            var iterate = false;
+            var curb = false;
+
+            function start(){
+                draw();
+                refreshPrompt();
+            }
+
+            function clear(){
+                context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+
+            function draw(){
+                clear();
+
+                camera.drawCircle({x:0, y:0}, 1, "#eee");
+
+                camera.drawLine({x:-0.95, y:0}, {x:0.95, y:0}, 0.1, "black");
+                camera.drawLine({x:0, y:-0.95}, {x:0, y:0.95},  0.1, "black");
+
+                for (var i = 0; i < dots.length; i++) {
+                    dots[i].draw();
                 }
 
-                function clear(){
-                    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                //camera.drawCircle(mousePointWorld, 0.2, "red");
+
+                var s = (multiply?"*":"+");
+                if (iterate) s = s+s+s;
+                s = s+pointStringC(mousePointWorld);
+
+                //port.drawText(s, {x:0.03, y:0.95}, 0.05, "left", "black");
+            }
+
+            function transform(c){
+                if (multiply) return c.multiply(transformation);
+                return c.plus(transformation);
+            }
+
+            function refreshPrompt(){
+                var s = "";
+                s += (multiply?"Multiply":"Add");
+                s += " ";
+                s += (iterate?"all points":"last points");
+                s += " ";
+                s += (multiply?"by":"to");
+                s += " ";
+                s += pointStringC(mousePointWorld);
+                prompt.innerHTML = s;
+            }
+
+            function onMouseDown(event){
+                draw();
+            }
+
+            function onMouseUp(event){
+                var pushDots = [];
+
+                var newDot;
+                var l = dots.length;
+                if (l == 0) {
+                    newDot = new Dot(transformation, null);
+                    dots.push(newDot);
+                    pushDots.push(newDot);
                 }
-
-                function draw(){
-                    clear();
-
-                    camera.drawCircle({x:0, y:0}, 1, "#eee");
-
-                    camera.drawLine({x:-0.95, y:0}, {x:0.95, y:0}, 0.1, "black");
-                    camera.drawLine({x:0, y:-0.95}, {x:0, y:0.95},  0.1, "black");
-
-                    for (var i = 0; i < dots.length; i++) {
-                        dots[i].draw();
-                    }
-
-                    //camera.drawCircle(mousePointWorld, 0.2, "red");
-
-                    var s = (multiply?"*":"+");
-                    if (iterate) s = s+s+s;
-                    s = s+pointStringC(mousePointWorld);
-
-                    //port.drawText(s, {x:0.03, y:0.95}, 0.05, "left", "black");
-                }
-
-                function transform(c){
-                    if (multiply) return c.multiply(transformation);
-                    return c.plus(transformation);
-                }
-
-                function refreshPrompt(){
-                    var s = "";
-                    s += (multiply?"Multiply":"Add");
-                    s += " ";
-                    s += (iterate?"all points":"last points");
-                    s += " ";
-                    s += (multiply?"by":"to");
-                    s += " ";
-                    s += pointStringC(mousePointWorld);
-                    prompt.innerHTML = s;
-                }
-
-                function onMouseDown(event){
-                    draw();
-                }
-
-                function onMouseUp(event){
-                    var pushDots = [];
-
-                    var newDot;
-                    var l = dots.length;
-                    if (l == 0) {
-                        newDot = new Dot(transformation, null);
+                else if (iterate) {// && !curb) {
+                    for (var i = 0; i < l; i++) {
+                        newDot = new Dot(transform(dots[i].value), dots[i]);
                         dots.push(newDot);
                         pushDots.push(newDot);
+                        //dots[i].setValue(transform(dots[i].value));
                     }
-                    else if (iterate) {// && !curb) {
-                        for (var i = 0; i < l; i++) {
-                            newDot = new Dot(transform(dots[i].value), dots[i]);
-                            dots.push(newDot);
-                            pushDots.push(newDot);
-                            //dots[i].setValue(transform(dots[i].value));
-                        }
-                        curb = true;
+                    curb = true;
+                }
+                else {
+                    for (var i = 0; i < newDots.length; i++) {
+                        newDot = new Dot(transform(newDots[i].value), newDots[i]);
+                        dots.push(newDot);
+                        pushDots.push(newDot);
+                        //dots[i].setValue(transform(dots[i].value));
                     }
-                    else {
-                        for (var i = 0; i < newDots.length; i++) {
-                            newDot = new Dot(transform(newDots[i].value), newDots[i]);
-                            dots.push(newDot);
-                            pushDots.push(newDot);
-                            //dots[i].setValue(transform(dots[i].value));
-                        }
-                    }
-
-                    newDots = pushDots;
-                    iterate = false;
-                    //dots.push(new Dot(transformation));
-                    draw();
                 }
 
-                function onMouseMove(event){
-                    mousePointView = getMousePos(canvas, event);
-                    mousePointWorld = camera.transformPoint(mousePointView);
+                newDots = pushDots;
+                iterate = false;
+                //dots.push(new Dot(transformation));
+                draw();
+            }
 
-                    mousePointWorld.x = trunc(mousePointWorld.x);
-                    mousePointWorld.y = trunc(mousePointWorld.y);
+            function onMouseMove(event){
+                mousePointView = getMousePos(canvas, event);
+                mousePointWorld = camera.transformPoint(mousePointView);
 
-                    transformation = new Complex.Cartesian(mousePointWorld.x, mousePointWorld.y);
+                mousePointWorld.x = trunc(mousePointWorld.x);
+                mousePointWorld.y = trunc(mousePointWorld.y);
 
-                    //console.log("Moving to "+transformation.toString());
+                transformation = new Complex.Cartesian(mousePointWorld.x, mousePointWorld.y);
 
-                    draw();
+                //console.log("Moving to "+transformation.toString());
 
-                    refreshPrompt();
-                }
+                draw();
 
-                function onTouchStart(event){
-                    var touch = event.touches[0];
-                    var mouseEvent = new MouseEvent("mousedown", {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    canvas.dispatchEvent(mouseEvent);
-                }
+                refreshPrompt();
+            }
 
-                function onTouchEnd(event){
-                    var touch = event.touches[0];
-                    var mouseEvent = new MouseEvent("mouseup");
-                    canvas.dispatchEvent(mouseEvent);
-                }
+            function onTouchStart(event){
+                var touch = event.touches[0];
+                var mouseEvent = new MouseEvent("mousedown", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            }
 
-                function onTouchMove(event){
-                    var touch = event.touches[0];
-                    var mouseEvent = new MouseEvent("mousemove", {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    canvas.dispatchEvent(mouseEvent);
-                }
+            function onTouchEnd(event){
+                var touch = event.touches[0];
+                var mouseEvent = new MouseEvent("mouseup");
+                canvas.dispatchEvent(mouseEvent);
+            }
 
-                function onTouchCancel(event){
-                }
+            function onTouchMove(event){
+                var touch = event.touches[0];
+                var mouseEvent = new MouseEvent("mousemove", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            }
 
-                function onKeyUp(event){
-                    console.log("UP Keycode="+event.keyCode);
+            function onTouchCancel(event){
+            }
 
-                    if (event.keyCode == 16) {
-                        multiply = true;
-                        event.preventDefault();
-                        draw();
-                    }
-                    /*
-                    if (event.keyCode == 0 || event.keyCode == 32) {
-                        iterate = false;
-                        event.preventDefault();
-                        draw();
-                    }
-                    */
-                    refreshPrompt();
-                }
+            function onKeyUp(event){
+                console.log("UP Keycode="+event.keyCode);
 
-                function onKeyDown(event){
-                    console.log("DOWN Keycode="+event.keyCode);
-
-                    if (event.keyCode == 16) {
-                        multiply = false;
-                        event.preventDefault();
-                        draw();
-                    }
-                    if (event.keyCode == 0 || event.keyCode == 32) {
-                        iterate = !iterate;
-                        event.preventDefault();
-                        draw();
-                    }
-                    /*
-                    if (event.keyCode == 0 || event.keyCode == 32 || event.keyCode == 81) {
-                        multiply = !multiply;
-                        event.preventDefault();
-                        draw();
-                    }
-                    if (event.keyCode == 13 || event.keyCode == 69) {
-                        iterate = !iterate;
-                        event.preventDefault();
-                        draw();
-                    }
-                    if (event.keyCode == 38 || event.keyCode == 87) {
-                        camera.setFov(camera.fov/2);
-                        event.preventDefault();
-                        draw();
-                    }
-                    if (event.keyCode == 40 || event.keyCode == 83) {
-                        camera.setFov(camera.fov*2);
-                        event.preventDefault();
-                        draw();
-                    }
-                    */
-                    if (event.keyCode == 66) {
-                        dots = [];
-                        newDots = [];
-                        camera.setFov(8);
-                        event.preventDefault();
-                        draw();
-                    }
-                    refreshPrompt();
-                }
-
-                function handleScroll(event){
-                    console.log("Scrolling");
+                if (event.keyCode == 16) {
+                    multiply = true;
                     event.preventDefault();
-                    var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-                    camera.fov = Math.max(2, camera.fov-delta);
                     draw();
                 }
-
-                function getMousePos(canvas, event){
-                    var rect = canvas.getBoundingClientRect();
-                    return {
-                        x: event.clientX - rect.left,
-                        y: event.clientY - rect.top
-                    };
+                /*
+                if (event.keyCode == 0 || event.keyCode == 32) {
+                    iterate = false;
+                    event.preventDefault();
+                    draw();
                 }
+                */
+                refreshPrompt();
+            }
 
-                function complexToPoint(c){
-                    return {x: c.real, y: c.imag}
+            function onKeyDown(event){
+                console.log("DOWN Keycode="+event.keyCode);
+
+                if (event.keyCode == 16) {
+                    multiply = false;
+                    event.preventDefault();
+                    draw();
                 }
-
-                function pointString(point){
-                    return "("+trunc(point.x)+", "+trunc(point.y)+")";
+                if (event.keyCode == 0 || event.keyCode == 32) {
+                    iterate = !iterate;
+                    event.preventDefault();
+                    draw();
                 }
-
-                function pointStringC(point){
-                    return "("+trunc(point.x)+" + "+trunc(point.y)+"i)";
+                /*
+                if (event.keyCode == 0 || event.keyCode == 32 || event.keyCode == 81) {
+                    multiply = !multiply;
+                    event.preventDefault();
+                    draw();
                 }
-
-                function xyString(x, y){
-                    return "("+trunc(x)+", "+trunc(y)+")";
+                if (event.keyCode == 13 || event.keyCode == 69) {
+                    iterate = !iterate;
+                    event.preventDefault();
+                    draw();
                 }
-
-                function trunc(v){
-                    return Math.round(v*10)/10;
+                if (event.keyCode == 38 || event.keyCode == 87) {
+                    camera.setFov(camera.fov/2);
+                    event.preventDefault();
+                    draw();
                 }
-
-                function distance(a, b){
-                    return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+                if (event.keyCode == 40 || event.keyCode == 83) {
+                    camera.setFov(camera.fov*2);
+                    event.preventDefault();
+                    draw();
                 }
-
-                function length(v){
-                    return Math.sqrt(v.x**2+v.y**2);
+                */
+                if (event.keyCode == 66) {
+                    dots = [];
+                    newDots = [];
+                    camera.setFov(8);
+                    event.preventDefault();
+                    draw();
                 }
+                refreshPrompt();
+            }
 
-                start();
+            function handleScroll(event){
+                console.log("Scrolling");
+                event.preventDefault();
+                var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
+                camera.fov = Math.max(2, camera.fov-delta);
+                draw();
+            }
 
-            </script>
-        </div>
+            function getMousePos(canvas, event){
+                var rect = canvas.getBoundingClientRect();
+                return {
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top
+                };
+            }
+
+            function complexToPoint(c){
+                return {x: c.real, y: c.imag}
+            }
+
+            function pointString(point){
+                return "("+trunc(point.x)+", "+trunc(point.y)+")";
+            }
+
+            function pointStringC(point){
+                return "("+trunc(point.x)+" + "+trunc(point.y)+"i)";
+            }
+
+            function xyString(x, y){
+                return "("+trunc(x)+", "+trunc(y)+")";
+            }
+
+            function trunc(v){
+                return Math.round(v*10)/10;
+            }
+
+            function distance(a, b){
+                return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+            }
+
+            function length(v){
+                return Math.sqrt(v.x**2+v.y**2);
+            }
+
+            start();
+
+        </script>
     </body>
 </html>
